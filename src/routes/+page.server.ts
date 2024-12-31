@@ -8,11 +8,8 @@ import type { Actions, PageServerLoad, RequestEvent } from './$types';
 import { schema } from './utils';
 
 export const load: PageServerLoad = async () => {
-    const page_meta_tags = {
-        title: 'Contact'
-    };
 
-    return { form: await superValidate(zod(schema)), page_meta_tags };
+    return { form: await superValidate(zod(schema)) };
 };
 
 export const actions: Actions = {
