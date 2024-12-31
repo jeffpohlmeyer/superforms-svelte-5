@@ -1,6 +1,6 @@
 <script lang="ts">
     import { PUBLIC_GOOGLE_RECAPTCHA_SITE_KEY } from '$env/static/public';
-
+    import {enhance} from '$app/forms'
     import type { PageData } from './$types';
     import SuperDebug, {superForm} from "sveltekit-superforms";
     import {zodClient} from "sveltekit-superforms/adapters";
@@ -12,20 +12,9 @@
     };
     let { data }: Props = $props();
     let loading: boolean = $state(false);
-    let token: string = $state('')
 
-    const {form, enhance, message, constraints} = superForm(data.form, {
+    const {message, constraints} = superForm(data.form, {
         validators: zodClient(schema),
-        onSubmit: async ({ formData }) => {
-            loading = true;
-            token = await create_re_captcha_client($form.token, window.grecaptcha);
-            console.log('token', token);
-            formData.set('token', String(token));
-        },
-        onResult: (res) => {
-            console.log('res', res);
-            loading = false;
-        }
     })
 </script>
 
@@ -38,26 +27,32 @@
   ></script>
 </svelte:head>
 
-<SuperDebug data={$form} />
 {#if $message}
   <h2>{$message.title}</h2>
   <p>{$message.text}</p>
 {/if}
-<form method="POST" use:enhance>
+<form method="POST" use:enhance={async ({ formData }) => {
+		loading = true;
+		const token = await create_re_captcha_client(formData.get('token'), window.grecaptcha);
+		formData.append('token', String(token));
+		return async ({ update }) => {
+			update();
+			loading = false;
+		};
+	}
+}>
   <label>
     Name
-    <input type="text" {...$constraints.name} name="name" bind:value={$form.name}>
+    <input type="text" {...$constraints.name} name="name">
   </label>
   <label>
     Email
-    <input type="email" {...$constraints.email} name="email" bind:value={$form.email}>
+    <input type="email" {...$constraints.email} name="email">
   </label>
   <label>
     Message
-    <textarea {...$constraints.message} name="message" bind:value={$form.message}></textarea>
+    <textarea {...$constraints.message} name="message"></textarea>
   </label>
-  <input type="hidden" name="token" bind:value={token}>
-  <p>{token}</p>
   <button type="submit">
     {#if loading}
       Loading
